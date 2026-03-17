@@ -16,7 +16,7 @@ V2 CHANGES:
 
 Exceptions:
     SE-01: API key invalid (401) → abort entire batch, alert admin.
-    SE-02: Rate limit 429/5xx → per-article retry 5x with backoff, mark 'Error' on exhaust.
+    SE-02: Rate limit 429/5xx → per-article retry 5x with 30s waits, mark 'Error' on exhaust.
     BE-01: Malformed JSON → log raw response, mark 'Error', continue.
     BE-02: Invalid enum values → topic defaults to Other, importance defaults to MEDIUM.
 """
@@ -38,6 +38,10 @@ _REQUIRED_KEYS = {"topic_category", "relevant_persons", "importance", "one_line_
 
 _FALLBACK_TOPIC = "Other"
 _FALLBACK_IMPORTANCE = "MEDIUM"
+
+_INTER_ARTICLE_DELAY = 5    # seconds between each article
+_RETRY_WAIT = 30            # seconds to wait after any failed attempt
+_MAX_ATTEMPTS = 5           # max attempts per article
 
 
 def _load_system_prompt() -> str:
@@ -79,7 +83,6 @@ def _validate_and_fix(classification: Dict, article_url: str) -> Dict:
     persons = [str(p).strip() for p in persons if str(p).strip()]
     if not persons:
         warnings.append("relevant_persons=[]")
-        # Keep empty — caller will log but article still proceeds (names are free-form)
     fixed["relevant_persons"] = persons
 
     if warnings:
@@ -92,28 +95,15 @@ def _validate_and_fix(classification: Dict, article_url: str) -> Dict:
     return fixed
 
 
-def classify_articles(articles: List[Dict]) -> List[Dict]:
-    """Classify each article via LLM. Returns only HIGH and MEDIUM articles.
+def _call_with_retry(system_prompt: str, user_message: str, url: str) -> Dict:
+    """Call llm_call with up to 5 attempts, waiting 30s between failures.
 
-    SKIP articles are logged and discarded.
-    Error articles (BE-01, SE-02 exhausted) are logged and excluded.
-    SE-01 (auth failure) aborts the entire batch immediately.
-
-    Each returned dict contains all original fields plus:
-        topic_category, relevant_persons (list of str), importance, one_line_summary
+    Raises RuntimeError("SE-01:...") immediately on auth failure.
+    Raises RuntimeError("SE-02:...") after all attempts exhausted.
+    Raises ValueError on JSON parse failure (BE-01).
     """
-    system_prompt = _load_system_prompt()
-    classified: List[Dict] = []
-    skip_count = 0
-    error_count = 0
-
-    for i, article in enumerate(articles):
-        if i > 0:
-            time.sleep(1)  # 1s between API calls to avoid rate limiting
-
-        url = article.get("url", f"article_{i}")
-        user_message = _format_user_message(article)
-
+    last_exc = None
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             result = llm_call(
                 system_prompt=system_prompt,
@@ -123,29 +113,88 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
                 max_tokens=300,
                 expect_json=True,
             )
+            return result
+        except RuntimeError as exc:
+            if "SE-01" in str(exc):
+                raise  # auth failure — abort immediately, no retry
+            last_exc = exc
+            logger.warning(
+                "Attempt %d/%d failed for %s: %s",
+                attempt, _MAX_ATTEMPTS, url, exc,
+            )
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "Attempt %d/%d failed for %s: %s",
+                attempt, _MAX_ATTEMPTS, url, exc,
+            )
+
+        if attempt < _MAX_ATTEMPTS:
+            print(f"  [RETRY] Waiting {_RETRY_WAIT}s before attempt {attempt + 1}/{_MAX_ATTEMPTS} for: {url}")
+            time.sleep(_RETRY_WAIT)
+
+    raise RuntimeError(
+        f"SE-02: All {_MAX_ATTEMPTS} attempts failed for {url}. Last error: {last_exc}"
+    ) from last_exc
+
+
+def classify_articles(articles: List[Dict]) -> List[Dict]:
+    """Classify each article via LLM. Returns only HIGH and MEDIUM articles.
+
+    SKIP and LOW articles are discarded.
+    Error articles are logged and excluded.
+    SE-01 (auth failure) aborts the entire batch immediately.
+
+    Each returned dict contains all original fields plus:
+        topic_category, relevant_persons (list of str), importance, one_line_summary
+    """
+    system_prompt = _load_system_prompt()
+    classified: List[Dict] = []
+    high_count = 0
+    medium_count = 0
+    skip_count = 0
+    error_count = 0
+    total = len(articles)
+
+    print(f"\n{'='*60}")
+    print(f"BR_02 CLASSIFICATION STARTING — {total} articles to process")
+    print(f"Inter-article delay: {_INTER_ARTICLE_DELAY}s | Retry wait: {_RETRY_WAIT}s | Max attempts: {_MAX_ATTEMPTS}")
+    print(f"{'='*60}")
+
+    for i, article in enumerate(articles):
+        if i > 0:
+            time.sleep(_INTER_ARTICLE_DELAY)
+
+        url = article.get("url", f"article_{i}")
+        title = article.get("title", "(no title)")
+        user_message = _format_user_message(article)
+
+        print(f"\n[{i+1}/{total}] Classifying: {title[:80]}")
+
+        try:
+            result = _call_with_retry(system_prompt, user_message, url)
         except RuntimeError as exc:
             error_msg = str(exc)
             if "SE-01" in error_msg:
+                print(f"  [FATAL] API auth failure — aborting entire batch")
                 logger.error("SE-01: API auth failure — aborting entire classification batch: %s", exc)
                 raise
-            # SE-02: rate limit exhausted after llm_call's internal 5 retries
-            logger.error("SE-02: Rate limit/server error exhausted for %s: %s — marking Error.", url, exc)
+            print(f"  [ERROR] All {_MAX_ATTEMPTS} attempts failed — skipping article")
+            logger.error("SE-02: %s", exc)
             error_count += 1
             continue
         except Exception as exc:
-            # BE-01: covers json.JSONDecodeError from expect_json=True parsing
-            logger.error(
-                "BE-01: Failed to parse LLM response for %s: %s — marking Error, continuing.",
-                url, exc,
-            )
+            print(f"  [ERROR] Unexpected failure — skipping article: {exc}")
+            logger.error("BE-01: Failed to parse LLM response for %s: %s", url, exc)
             error_count += 1
             continue
 
         # Validate required keys (BE-01)
         missing_keys = _REQUIRED_KEYS - set(result.keys())
         if missing_keys:
+            print(f"  [ERROR] Missing JSON keys {missing_keys} — skipping article")
             logger.error(
-                "BE-01: LLM response for %s missing required keys %s. Raw: %s — marking Error.",
+                "BE-01: LLM response for %s missing required keys %s. Raw: %s",
                 url, missing_keys, result,
             )
             error_count += 1
@@ -154,25 +203,43 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
         # Validate + fix enum values (BE-02)
         result = _validate_and_fix(result, url)
 
-        # Discard SKIP and LOW articles — they never reach store_classified
+        # Discard SKIP and LOW — they never reach store_classified
         if result["importance"] in ("SKIP", "LOW"):
+            print(f"  [SKIP] importance={result['importance']} — discarding")
             logger.debug("%s: discarding article %s", result["importance"], url)
             skip_count += 1
             continue
 
+        # Build enriched article
         enriched = dict(article)
         enriched["topic_category"] = result["topic_category"]
-        enriched["relevant_persons"] = result["relevant_persons"]
+        enriched["relevant_persons"] = result["relevant_persons"]  # list of str from LLM JSON
         enriched["importance"] = result["importance"]
         enriched["one_line_summary"] = str(result.get("one_line_summary", ""))[:200]
         classified.append(enriched)
-        logger.debug(
-            "Classified %d/%d: %s → %s/%s",
-            i + 1, len(articles), url, result["topic_category"], result["importance"],
-        )
+
+        persons_str = ", ".join(result["relevant_persons"]) if result["relevant_persons"] else "(none)"
+        print(f"  [CLASSIFIED] {result['importance']} | {result['topic_category']} | {persons_str}")
+        print(f"  CLASSIFIED: {title[:70]} → {result['importance']} → {persons_str}")
+
+        if result["importance"] == "HIGH":
+            high_count += 1
+        else:
+            medium_count += 1
+
+    # Final summary
+    print(f"\n{'='*60}")
+    print(f"BR_02 CLASSIFICATION COMPLETE")
+    print(f"  Total articles processed : {total}")
+    print(f"  Classified HIGH          : {high_count}")
+    print(f"  Classified MEDIUM        : {medium_count}")
+    print(f"  Skipped (SKIP/LOW)       : {skip_count}")
+    print(f"  Failed classification    : {error_count}")
+    print(f"  → Proceeding to store    : {len(classified)} articles")
+    print(f"{'='*60}\n")
 
     logger.info(
-        "Classification complete: %d HIGH/MEDIUM, %d SKIP, %d error(s) (of %d total).",
-        len(classified), skip_count, error_count, len(articles),
+        "Classification complete: %d HIGH, %d MEDIUM, %d SKIP, %d error(s) (of %d total).",
+        high_count, medium_count, skip_count, error_count, total,
     )
     return classified

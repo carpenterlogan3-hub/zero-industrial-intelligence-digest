@@ -15,6 +15,11 @@ V2 CHANGES:
 - Column F is now "relevant_persons" (full names) instead of "relevant_roles"
 - Only HIGH and MEDIUM articles are stored (SKIP filtered upstream)
 
+NOTE: row_data includes both "relevant_persons" and "relevant_roles" keys so this
+module works correctly whether the sheet header in column F is the old name or the
+new name. Once the header is confirmed as "relevant_persons", the legacy key can
+be removed.
+
 Exceptions:
     SE-01: Sheets write fail → retry 3x, log as unwritten, continue.
 """
@@ -87,19 +92,28 @@ def store_classified_articles(articles: List[Dict]) -> List[Dict]:
     stored: List[Dict] = []
 
     for article in articles:
+        # relevant_persons is a list of full name strings set by classify_article.py
         persons = article.get("relevant_persons", [])
         if isinstance(persons, list):
             persons_str = ", ".join(persons)
         else:
             persons_str = str(persons)
 
+        # Debug: show exactly what is being written to column F
+        url = article.get("url", "?")
+        print(f"  [STORE] Column F (relevant_persons) for '{url[:60]}': '{persons_str}'")
+
         row_data = {
             "title": article.get("title", ""),
-            "url": article.get("url", ""),
+            "url": url,
             "source": article.get("source", ""),
             "pub_date": article.get("pub_date", ""),
             "topic_category": article.get("topic_category", ""),
+            # Write under both keys so the value lands in column F regardless of
+            # whether the sheet header is the old name ("relevant_roles") or the
+            # new name ("relevant_persons"). append_row matches dict keys to headers.
             "relevant_persons": persons_str,
+            "relevant_roles": persons_str,
             "importance": article.get("importance", ""),
             "one_line_summary": article.get("one_line_summary", ""),
             "digest_date": digest_date,
@@ -107,6 +121,7 @@ def store_classified_articles(articles: List[Dict]) -> List[Dict]:
 
         if _append_with_retry(row_data):
             stored.append(article)
+            logger.debug("Stored: %s | F='%s'", url[:60], persons_str)
 
     unwritten = len(articles) - len(stored)
     if unwritten:
