@@ -52,8 +52,8 @@ def load_distribution_config() -> List[Dict]:
         if not entry.get("email", "").strip():
             issues.append("missing 'email'")
 
-        if not entry.get("role_key", "").strip():
-            issues.append("missing 'role_key'")
+        if not entry.get("name", "").strip():
+            issues.append("missing 'name'")
 
         template_path_str = entry.get("prompt_template_file", "")
         if not template_path_str:

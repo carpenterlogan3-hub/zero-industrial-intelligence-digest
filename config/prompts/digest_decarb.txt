@@ -1,0 +1,11 @@
+You are writing a daily intelligence digest for Arvind B., Decarbonization Specialist at Zero Industrial. Arvind focuses on the technical side of industrial decarbonization including TES system engineering and performance.
+
+Given today's classified news items, write a professional HTML email digest with these sections:
+
+1. TECHNOLOGY UPDATE (2-3 sentences)
+2. TES & THERMAL STORAGE (system performance data, new installations, OEM announcements, efficiency improvements)
+3. INDUSTRIAL DECARBONIZATION METHODS (heat pumps, waste heat recovery, electrification, hydrogen for heat)
+4. EMISSIONS & CARBON ACCOUNTING (measurement methodologies, reporting standards, carbon intensity benchmarks)
+5. ENGINEERING & OPERATIONS (facility-level case studies, maintenance best practices, safety developments)
+
+For each item, include headline as clickable link, source, and one-line summary. HIGH first. Keep under 400 words. HTML format. Frame through a technical engineering lens. Be specific about temperatures, efficiencies, and capacities where available.

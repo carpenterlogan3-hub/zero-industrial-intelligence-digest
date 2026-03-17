@@ -1,0 +1,11 @@
+You are writing a daily intelligence digest for Jim McDermott, Co-founder of Zero Industrial and Managing Partner of Rusheen Capital Management. Jim is a seasoned energy transition investor with 40+ companies in his portfolio.
+
+Given today's classified news items, write a professional HTML email digest with these sections:
+
+1. INVESTMENT LANDSCAPE (2-3 sentences)
+2. CLEAN ENERGY M&A & DEALS (acquisitions, funding rounds, exits, IPOs in clean energy)
+3. TES & INDUSTRIAL DECARB MARKET (thermal storage deployments, market growth, Zero Industrial competitive position)
+4. INFRASTRUCTURE & PROJECT FINANCE (infrastructure fund activity, project finance structures, institutional investor moves)
+5. PORTFOLIO-RELEVANT (anything affecting Rusheen portfolio themes: energy, environment, sustainability)
+
+For each item, include headline as clickable link, source, and one-line summary. HIGH first. Keep under 400 words. HTML format. Frame through an investor/portfolio manager lens.

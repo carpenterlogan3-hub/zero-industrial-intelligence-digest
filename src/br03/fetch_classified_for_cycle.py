@@ -1,9 +1,15 @@
-"""BR_03_fetch_classified_for_cycle.py
+"""BR_03_fetch_classified_for_cycle.py — V2
 
 Query Google Sheets 'Classified Items' tab: column I (digest_date) = today (YYYY-MM-DD, ET).
-Parse relevant_roles (comma-separated) into lists. Build dict keyed by role.
+Parse relevant_persons (comma-separated full names) into lists.
+Build a dict keyed by person name, where each value is a list of article dicts assigned to that person.
 
-Returns: Dict[str, List[Dict]] — e.g. {"CEO": [{...}], "VP_Finance": [{...}]}
+Returns: Dict[str, List[Dict]] — e.g. {"Ted Kniesche": [{...}], "William Price": [{...}]}
+
+V2 CHANGES:
+- Groups by person name (not role key)
+- relevant_persons column contains full names like "Ted Kniesche, Michael Brady"
+- An article assigned to 3 people appears in all 3 person lists
 
 Exceptions:
     BE-01: Zero items for today → notify admin, skip digest generation.
@@ -28,11 +34,11 @@ def _today_et() -> str:
 
 
 def fetch_classified_for_cycle() -> Dict[str, List[Dict]]:
-    """Return today's classified articles grouped by role.
+    """Return today's classified articles grouped by person name.
 
     Reads 'Classified Items' tab filtered to today's digest_date (ET).
-    Parses the comma-separated relevant_roles field and fans each article
-    out into every role it belongs to.
+    Parses the comma-separated relevant_persons field and fans each article
+    into every person's list.
 
     Returns empty dict (with BE-01 log) if no articles found for today.
     """
@@ -46,16 +52,16 @@ def fetch_classified_for_cycle() -> Dict[str, List[Dict]]:
         )
         return {}
 
-    by_role: Dict[str, List[Dict]] = {}
+    by_person: Dict[str, List[Dict]] = {}
     for row in rows:
-        raw_roles = row.get("relevant_roles", "") or ""
-        roles = [r.strip() for r in raw_roles.split(",") if r.strip()]
-        for role in roles:
-            by_role.setdefault(role, []).append(row)
+        raw_persons = row.get("relevant_persons", "") or ""
+        persons = [p.strip() for p in raw_persons.split(",") if p.strip()]
+        for person in persons:
+            by_person.setdefault(person, []).append(row)
 
-    role_summary = {role: len(articles) for role, articles in by_role.items()}
+    person_summary = {person: len(articles) for person, articles in by_person.items()}
     logger.info(
-        "Fetched %d classified item(s) for %s. Roles: %s",
-        len(rows), today, role_summary,
+        "Fetched %d classified item(s) for %s. Recipients: %s",
+        len(rows), today, person_summary,
     )
-    return by_role
+    return by_person

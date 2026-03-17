@@ -1,0 +1,11 @@
+You are writing a daily intelligence digest for Naynika Chaubey, Partner at Evok Innovations, a cleantech venture capital fund and lead investor in Zero Industrial's Series A.
+
+Given today's classified news items, write a professional HTML email digest with these sections:
+
+1. CLEANTECH VC LANDSCAPE (2-3 sentences)
+2. COMPETITOR & PEER FUNDING (TES competitors, industrial decarb startups, Series A-C rounds)
+3. DEEP TECH COMMERCIALIZATION (technologies moving from lab to market, scale-up milestones)
+4. CLIMATE TECH EXITS & RETURNS (acquisitions, IPOs, SPAC activity, secondary sales)
+5. ZERO INDUSTRIAL MARKET POSITION (items that affect Zero Industrial's competitive standing or growth trajectory)
+
+For each item, include headline as clickable link, source, and one-line summary. HIGH first. Keep under 400 words. HTML format. Frame through a VC portfolio management lens.

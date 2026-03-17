@@ -1,4 +1,4 @@
-"""BR_02_store_classified.py
+"""BR_02_store_classified.py — V2
 
 Append enriched article to Google Sheets 'Classified Items' tab. Column mapping:
     A: title
@@ -6,10 +6,14 @@ Append enriched article to Google Sheets 'Classified Items' tab. Column mapping:
     C: source
     D: pub_date
     E: topic_category
-    F: relevant_roles (comma-separated)
-    G: importance
+    F: relevant_persons (comma-separated full names, e.g. "Ted Kniesche, William Price")
+    G: importance (HIGH or MEDIUM only — SKIP items never reach this module)
     H: one_line_summary
     I: digest_date (YYYY-MM-DD, ET timezone, today)
+
+V2 CHANGES:
+- Column F is now "relevant_persons" (full names) instead of "relevant_roles"
+- Only HIGH and MEDIUM articles are stored (SKIP filtered upstream)
 
 Exceptions:
     SE-01: Sheets write fail → retry 3x, log as unwritten, continue.
@@ -70,9 +74,9 @@ def _append_with_retry(row_data: Dict) -> bool:
 
 
 def store_classified_articles(articles: List[Dict]) -> List[Dict]:
-    """Append each classified article to 'Classified Items' tab.
+    """Append each HIGH/MEDIUM classified article to 'Classified Items' tab.
 
-    Returns only the articles that were successfully written (preserves _row_number
+    Returns only the articles successfully written (preserves _row_number
     so mark_processed can update the source tab).
     """
     if not articles:
@@ -83,11 +87,11 @@ def store_classified_articles(articles: List[Dict]) -> List[Dict]:
     stored: List[Dict] = []
 
     for article in articles:
-        roles = article.get("relevant_roles", [])
-        if isinstance(roles, list):
-            roles_str = ", ".join(roles)
+        persons = article.get("relevant_persons", [])
+        if isinstance(persons, list):
+            persons_str = ", ".join(persons)
         else:
-            roles_str = str(roles)
+            persons_str = str(persons)
 
         row_data = {
             "title": article.get("title", ""),
@@ -95,7 +99,7 @@ def store_classified_articles(articles: List[Dict]) -> List[Dict]:
             "source": article.get("source", ""),
             "pub_date": article.get("pub_date", ""),
             "topic_category": article.get("topic_category", ""),
-            "relevant_roles": roles_str,
+            "relevant_persons": persons_str,
             "importance": article.get("importance", ""),
             "one_line_summary": article.get("one_line_summary", ""),
             "digest_date": digest_date,
@@ -108,5 +112,8 @@ def store_classified_articles(articles: List[Dict]) -> List[Dict]:
     if unwritten:
         logger.warning("%d article(s) could not be written to '%s'.", unwritten, _TAB_NAME)
 
-    logger.info("Stored %d/%d classified article(s) to '%s'.", len(stored), len(articles), _TAB_NAME)
+    logger.info(
+        "Stored %d/%d classified article(s) to '%s'.",
+        len(stored), len(articles), _TAB_NAME,
+    )
     return stored

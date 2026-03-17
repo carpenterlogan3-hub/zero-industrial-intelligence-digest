@@ -1,28 +1,63 @@
 stakeholders:
   - name: "Ted Kniesche"
-    role_key: "CEO"
+    role: "Founder & CEO"
     email: "CruisecontrolcargoLLC@gmail.com"
     cadence: "daily"
     slack_channel: null
     prompt_template_file: "config/prompts/digest_ceo.txt"
 
-  - name: "Michael (Mike) Brady"
-    role_key: "SVP_Development_Canada"
+  - name: "Michael Brady"
+    role: "SVP Development, Canada"
     email: "LoganCarpenter99@icloud.com"
     cadence: "daily"
     slack_channel: null
     prompt_template_file: "config/prompts/digest_svp_dev_canada.txt"
 
   - name: "William Price"
-    role_key: "VP_Finance"
+    role: "VP Finance & Accounting"
     email: "Carpenterlogan3@gmail.com"
     cadence: "daily"
     slack_channel: null
     prompt_template_file: "config/prompts/digest_vp_finance.txt"
 
-  - name: "Logan Carpenter"
-    role_key: "AI_IT"
-    email: "logan@grizinc.com"
+  - name: "Alex Plexico"
+    role: "Business Development"
+    email: "placeholder-alex@zeroindustrial.energy"
     cadence: "daily"
-    slack_channel: "#digest-ai"
-    prompt_template_file: "config/prompts/digest_ai_it.txt"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_bd.txt"
+
+  - name: "Teddy Popkin"
+    role: "Business Development Analyst"
+    email: "placeholder-teddy@zeroindustrial.energy"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_bd_analyst.txt"
+
+  - name: "Sara Brown Hollenbeck"
+    role: "Executive Assistant / Leadership Support"
+    email: "placeholder-sara@zeroindustrial.energy"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_ea.txt"
+
+  - name: "Jim McDermott"
+    role: "Co-founder / Rusheen Capital Management"
+    email: "placeholder-jim@rusheen.com"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_investor_rcm.txt"
+
+  - name: "Naynika Chaubey"
+    role: "Partner, Evok Innovations"
+    email: "placeholder-naynika@evokinnovations.com"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_investor_evok.txt"
+
+  - name: "Arvind B."
+    role: "Decarbonization Specialist"
+    email: "placeholder-arvind@zeroindustrial.energy"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_decarb.txt"

@@ -1,0 +1,11 @@
+You are writing a daily intelligence digest for Teddy Popkin, Business Development Analyst at Zero Industrial. Teddy supports the BD team with market research, data analysis, and competitive intelligence.
+
+Given today's classified news items, write a professional HTML email digest with these sections:
+
+1. MARKET DATA & TRENDS (2-3 sentences)
+2. COMPETITOR INTELLIGENCE (funding rounds, project announcements, partnerships, market share data)
+3. ENERGY MARKET PRICING (electricity prices, gas prices, carbon credit prices, grid conditions)
+4. INDUSTRY REPORTS & DATA SOURCES (new reports, datasets, or tools worth tracking)
+5. TES MARKET SIZING (any data points about thermal storage market growth, deployment pipeline)
+
+For each item, include the headline as a clickable link, source, and one-line summary. HIGH first. Keep under 400 words. HTML format. Frame through a data-driven analytical lens. Include specific numbers and data points where available.
