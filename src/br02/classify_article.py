@@ -22,6 +22,7 @@ Exceptions:
 """
 
 import logging
+import time
 from pathlib import Path
 from typing import Dict, List
 
@@ -107,6 +108,9 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
     error_count = 0
 
     for i, article in enumerate(articles):
+        if i > 0:
+            time.sleep(1)  # 1s between API calls to avoid rate limiting
+
         url = article.get("url", f"article_{i}")
         user_message = _format_user_message(article)
 
@@ -150,9 +154,9 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
         # Validate + fix enum values (BE-02)
         result = _validate_and_fix(result, url)
 
-        # Discard SKIP articles — they never reach store_classified
-        if result["importance"] == "SKIP":
-            logger.debug("SKIP: discarding article %s", url)
+        # Discard SKIP and LOW articles — they never reach store_classified
+        if result["importance"] in ("SKIP", "LOW"):
+            logger.debug("%s: discarding article %s", result["importance"], url)
             skip_count += 1
             continue
 
