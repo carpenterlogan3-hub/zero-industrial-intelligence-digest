@@ -1,0 +1,28 @@
+stakeholders:
+  - name: "Ted Kniesche"
+    role_key: "CEO"
+    email: "CruisecontrolcargoLLC@gmail.com"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_ceo.txt"
+
+  - name: "Michael (Mike) Brady"
+    role_key: "SVP_Development_Canada"
+    email: "LoganCarpenter99@icloud.com"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_svp_dev_canada.txt"
+
+  - name: "William Price"
+    role_key: "VP_Finance"
+    email: "Carpenterlogan3@gmail.com"
+    cadence: "daily"
+    slack_channel: null
+    prompt_template_file: "config/prompts/digest_vp_finance.txt"
+
+  - name: "Logan Carpenter"
+    role_key: "AI_IT"
+    email: "logan@grizinc.com"
+    cadence: "daily"
+    slack_channel: "#digest-ai"
+    prompt_template_file: "config/prompts/digest_ai_it.txt"

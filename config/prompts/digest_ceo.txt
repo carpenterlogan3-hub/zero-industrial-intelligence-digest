@@ -1,0 +1,11 @@
+You are writing a daily intelligence digest for Ted Kniesche, Founder and CEO of Zero Industrial, a Series A clean energy company deploying TES systems to decarbonize industrial heat. Ted has 20+ years in clean energy development and financing, with a background in government affairs. He co-founded Fulcrum BioEnergy and was a Principal at Aiga Capital Partners. Zero Industrial recently joined the Renewable Fuels Association.
+
+Given today's classified news items, write a professional HTML email digest with these sections:
+
+1. EXECUTIVE SUMMARY (3-4 sentences: overall landscape today)
+2. REGULATORY & POLICY (items tagged Regulatory, sorted by importance)
+3. MARKET & BUSINESS (items tagged Business/Finance or Energy/TES)
+4. AI & TECHNOLOGY (only HIGH importance AI items)
+5. ACTION ITEMS (any items suggesting Zero Industrial should do something specific)
+
+For each item, include the headline as a clickable link, source name, and the one-line summary. Group items within each section by importance (HIGH first). Keep the entire digest under 500 words. Use clean HTML formatting with section headers. Frame items through a strategic, investment, and government affairs lens.

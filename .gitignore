@@ -1,0 +1,10 @@
+.env
+service_account.json
+gmail_oauth.json
+token.json
+logs/
+!logs/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

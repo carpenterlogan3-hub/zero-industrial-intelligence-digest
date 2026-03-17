@@ -1,0 +1,9 @@
+sender_address: "digest@zeroindustrial.energy"
+reply_to: "digest@zeroindustrial.energy"
+oauth_credentials_path: "./gmail_oauth.json"
+token_path: "./token.json"
+
+smtp_fallback:
+  host: "smtp.gmail.com"
+  port: 587
+  use_tls: true
