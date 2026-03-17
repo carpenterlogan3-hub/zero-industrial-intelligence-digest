@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 _PROMPT_PATH = Path(__file__).parent.parent.parent / "config" / "prompts" / "classify_system.txt"
 
 _VALID_TOPIC_CATEGORIES = {"Regulatory", "AI/Tech", "Energy/TES", "Business/Finance", "Other"}
-_VALID_IMPORTANCE = {"HIGH", "MEDIUM", "SKIP"}
+_VALID_IMPORTANCE = {"HIGH", "MEDIUM", "LOW"}
 _REQUIRED_KEYS = {"topic_category", "relevant_persons", "importance", "one_line_summary"}
 
 _FALLBACK_TOPIC = "Other"
@@ -82,7 +82,8 @@ def _validate_and_fix(classification: Dict, article_url: str) -> Dict:
         persons = [str(persons)] if persons else []
     persons = [str(p).strip() for p in persons if str(p).strip()]
     if not persons:
-        warnings.append("relevant_persons=[]")
+        warnings.append("relevant_persons=[] — defaulting to Ted Kniesche")
+        persons = ["Ted Kniesche"]
     fixed["relevant_persons"] = persons
 
     if warnings:
@@ -139,10 +140,10 @@ def _call_with_retry(system_prompt: str, user_message: str, url: str) -> Dict:
 
 
 def classify_articles(articles: List[Dict]) -> List[Dict]:
-    """Classify each article via LLM. Returns only HIGH and MEDIUM articles.
+    """Classify each article via LLM. Returns ALL articles that receive a valid response.
 
-    SKIP and LOW articles are discarded.
-    Error articles are logged and excluded.
+    HIGH, MEDIUM, and LOW articles are all stored — nothing is discarded by importance.
+    Only hard failures (auth error, all 5 retries exhausted) exclude an article.
     SE-01 (auth failure) aborts the entire batch immediately.
 
     Each returned dict contains all original fields plus:
@@ -152,7 +153,7 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
     classified: List[Dict] = []
     high_count = 0
     medium_count = 0
-    skip_count = 0
+    low_count = 0
     error_count = 0
     total = len(articles)
 
@@ -201,16 +202,13 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
             continue
 
         # Validate + fix enum values (BE-02)
+        # SKIP returned by LLM is remapped to LOW — article is still stored
         result = _validate_and_fix(result, url)
+        if result["importance"] == "SKIP":
+            result["importance"] = "LOW"
+            logger.debug("Remapped SKIP → LOW for %s (article will be stored)", url)
 
-        # Discard SKIP and LOW — they never reach store_classified
-        if result["importance"] in ("SKIP", "LOW"):
-            print(f"  [SKIP] importance={result['importance']} — discarding")
-            logger.debug("%s: discarding article %s", result["importance"], url)
-            skip_count += 1
-            continue
-
-        # Build enriched article
+        # Build enriched article — ALL importance levels stored, nothing discarded
         enriched = dict(article)
         enriched["topic_category"] = result["topic_category"]
         enriched["relevant_persons"] = result["relevant_persons"]  # list of str from LLM JSON
@@ -224,8 +222,10 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
 
         if result["importance"] == "HIGH":
             high_count += 1
-        else:
+        elif result["importance"] == "MEDIUM":
             medium_count += 1
+        else:
+            low_count += 1
 
     # Final summary
     print(f"\n{'='*60}")
@@ -233,13 +233,13 @@ def classify_articles(articles: List[Dict]) -> List[Dict]:
     print(f"  Total articles processed : {total}")
     print(f"  Classified HIGH          : {high_count}")
     print(f"  Classified MEDIUM        : {medium_count}")
-    print(f"  Skipped (SKIP/LOW)       : {skip_count}")
+    print(f"  Classified LOW           : {low_count}")
     print(f"  Failed classification    : {error_count}")
     print(f"  → Proceeding to store    : {len(classified)} articles")
     print(f"{'='*60}\n")
 
     logger.info(
-        "Classification complete: %d HIGH, %d MEDIUM, %d SKIP, %d error(s) (of %d total).",
-        high_count, medium_count, skip_count, error_count, total,
+        "Classification complete: %d HIGH, %d MEDIUM, %d LOW, %d error(s) (of %d total).",
+        high_count, medium_count, low_count, error_count, total,
     )
     return classified
